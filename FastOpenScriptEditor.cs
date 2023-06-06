@@ -8,7 +8,7 @@ public class FastOpenScriptEditor : EditorWindow
 {
     //script to load
     public MonoScript scriptToEdit;
-    
+
     //options
     public string[] options = new string[] { "Visual Studio Code", "Notepad++" };
     public int index = 0;
@@ -62,10 +62,25 @@ public class FastOpenScriptEditor : EditorWindow
         OpenEditor(0);
     }
 
+
+    [MenuItem("CONTEXT/MonoBehaviour/Edit Script With VSCode", priority = -100)]
+    private static void OpenWithVSCodeFast(MenuCommand command)
+    {
+        MonoBehaviour scriptToLoad = command.context as MonoBehaviour;
+        OpenEditor(0, MonoScript.FromMonoBehaviour(scriptToLoad));
+    }
+
     [MenuItem("Assets/Open With Notepad++", false, 50)]
     private static void OpenWithNotepad()
     {
         OpenEditor(1);
+    }
+
+    [MenuItem("CONTEXT/MonoBehaviour/Edit Script With Notepad++", priority = -100)]
+    private static void OpenWithNotepadFast(MenuCommand command)
+    {
+        MonoBehaviour scriptToLoad = command.context as MonoBehaviour;
+        OpenEditor(1, MonoScript.FromMonoBehaviour(scriptToLoad));
     }
 
     public static void OpenEditor(int thisIndex)
@@ -76,9 +91,17 @@ public class FastOpenScriptEditor : EditorWindow
         window.Close();
     }
 
+    public static void OpenEditor(int thisIndex, MonoScript scriptPath)
+    {
+        FastOpenScriptEditor window = EditorWindow.GetWindow<FastOpenScriptEditor>();
+        window.scriptToEdit = scriptPath;
+        window.OpenEditorIndex(thisIndex);
+        window.Close();
+    }
+
     public void OpenEditorIndex(int index)
     {
-        string path = AssetDatabase.GetAssetPath(scriptToEdit);
+        string scriptPath = AssetDatabase.GetAssetPath(scriptToEdit);
         string editorPath = "";
 
         switch (index)
@@ -93,10 +116,27 @@ public class FastOpenScriptEditor : EditorWindow
                 editorPath = notepadPath;
                 break;
         }
-        Process.Start(editorPath, path);
+
+        if (editorPath == "" || editorPath == null)
+        {
+            UnityEngine.Debug.Log("No valid script path found");
+            return;
+        }
+
+        // Add quotes around the script path so The process sees it as a single argument
+        // in case there are spaces in the path 
+        scriptPath = "\"" + scriptPath + "\"";
+
+        Process.Start(editorPath, scriptPath);
     }
     #endregion
 
+
+    /// <summary>
+    /// Validates if the selected asset in the project window is a script
+    /// and checks if notepad/VS code exists.
+    /// If one of those returns false, the button will be greyed out
+    /// </summary>
     #region validate buttons
     [MenuItem("Assets/Open With Notepad++", true)]
     private static bool ValidateOpenWithNotepadPath()
@@ -127,6 +167,7 @@ public class FastOpenScriptEditor : EditorWindow
         visualCodePath = "\"" + Path.Combine(appData, "Programs", "Microsoft VS Code", "Code.exe") + "\"";
 
         bool VisualCodeExists = File.Exists(visualCodePath.Replace("\"", ""));
+
         if (VisualCodeExists)
         {
             return true;
@@ -138,8 +179,13 @@ public class FastOpenScriptEditor : EditorWindow
         }
     }
 
+
     private static void SetMissingEditorPopup(string missingEditor, string missingEditorURL)
     {
+        //In Preferences you can set this to false/true in case you'd like to get a popup with the missing
+        //script editor
+        if(FastOpenScriptEditorSettingsProvider.ShowMissingEditorPopup == false) return;
+
         missingEditorInfo = "It seems you don't have " + missingEditor + " installed";
         infoURL = "Click me to go to the " + missingEditor + " download page";
         linkURL = missingEditorURL;
