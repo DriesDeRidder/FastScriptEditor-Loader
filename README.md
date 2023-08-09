@@ -6,3 +6,7 @@ With this tool you can right click on a c# script in Unity and choose 'Open with
 
 You can - pretty easily - add your own fast editor of choice. such as Sublime Text ,...
 Enjoy!
+
+# To-Do
+- Add support for multiple Operating systems
+- Checking different installations (user installation, system installation)
